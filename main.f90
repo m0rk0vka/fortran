@@ -1,8 +1,8 @@
-program prak1
+program first_programm
 
 real :: LEFT_BORDER, RIGHT_BORDER, h, sigma, eps=0.000000001
 integer :: N, n0, m, i, k
-real, allocatable, dimension (:) :: X, Y, polinom, gradient, V, tmp
+real, allocatable, dimension (:) :: X, Y, polinom, gradient, V, temp
 logical :: first
 
     write (*, '(A)') 'Hello!'
@@ -29,20 +29,24 @@ logical :: first
 
     allocate (Y(N+1))
     write (*, '(A)') 'Operate with function: y = cos(2x) - ch(x/5) '
+    !write (*, '(A)') 'Operate with function: y = (x-0,7)(x-1,2)'
+    !write (*, '(A)') 'Operate with function: y = (x-0,6)(x-1,1)(x-1,4)'
     write (*, '(A)') ''
 
-    call get_target_F_values (X, Y, N+1)
+    !call testFunction1 (X, Y, N+1)
+    !call testFunction2 (X, Y, N+1)
+    call searchFunction (X, Y, N+1)
 
     allocate (polinom(n0+m))
     allocate (gradient(n0+m))
     allocate (V(n0+m))
-    allocate (tmp(n0+m))
+    allocate (temp(n0+m))
 
     do i=1, size(polinom)
         polinom(i)=0
         gradient(i)=0
         V(i)=0
-        tmp(i)=0
+        temp(i)=0
     end do
 
    do k=n0, n0+m-1
@@ -54,16 +58,16 @@ logical :: first
      write (*, '(A)' ) ''
 
         do while (sigma>=eps)
-            tmp=polinom
+            temp=polinom
             i=i+1
 
-            call get_V()
+            call calc_V()
 
             polinom=polinom+lambda()*V
             if (first.eqv..true.) then
                 first=.false.
             else
-                sigma=get_sigma()
+                sigma=calc_sigma()
             end if
 
             write(*,'(A7, I3, A14, F10.5)')'iter = ', i, ': |grad(F)| = ', sqrt(dot_product(gradient,gradient))
@@ -72,7 +76,7 @@ logical :: first
 
         write (*, '(A)') ''
 
-        write (*, '(A4, A9, A11, A11, A11)') 'iter', 'X(i)   ', 'Y(i)    ','P(i)    ','d    '
+        write (*, '(A6, A10, A10, A10, A5)') 'iter  ', 'X(i)       ', 'Y(i)        ','P(i)        ','delta'
 
         do i=1, N+1
             write (*, '(I2, F10.4, F10.4, F10.4, F10.4)') i-1, X(i), Y(i), P(X(i), polinom), abs(Y(i)-P(X(i), polinom))
@@ -92,14 +96,13 @@ logical :: first
    deallocate (polinom)
    deallocate (V)
    deallocate (gradient)
-   deallocate (tmp)
+   deallocate (temp)
 
    write (*, '(A)') ''
 
 contains
 
     real function P (point, array)
-
         real :: point
         integer :: i
         real, dimension (:) :: array
@@ -111,18 +114,6 @@ contains
         end do
 
     end function P
-
-    subroutine get_gradient ()
-        integer :: i, j
-
-        do j=1, k+1
-            gradient(j)=0
-            do i=1, N+1
-                gradient(j)=gradient(j)+2*(X(i)**(j-1))*(P(X(i), polinom)-Y(i))
-            end do
-        end do
-
-    end subroutine get_gradient
 
     real function G (array)
         real, dimension (:) :: array
@@ -136,19 +127,49 @@ contains
 
     end function G
 
-    subroutine get_V ()
-        real :: tmp
+    subroutine grad ()
+        integer :: i, j
+
+        do j=1, k+1
+            gradient(j)=0
+            do i=1, N+1
+                gradient(j)=gradient(j)+2*(X(i)**(j-1))*(P(X(i), polinom)-Y(i))
+            end do
+        end do
+
+    end subroutine grad
+
+    real function calc_sigma ()
+        integer :: i
+        real :: q
+
+        temp=temp-polinom
+        calc_sigma=1000
+
+        do i=1, k+1
+            if (polinom(i)/=0) then
+                q=abs(temp(i)/polinom(i))
+                if (q<calc_sigma) then
+                    calc_sigma=q
+                end if
+            end if
+        end do
+
+    end function calc_sigma
+
+    subroutine calc_V ()
+        real :: temp
 
         if (first.eqv..TRUE.) then
-                call get_gradient ()
+                call grad ()
                 V=(-1)*gradient
             else
-                tmp=dot_product(gradient, gradient)
-                call get_gradient ()
-                V=(-1)*gradient+(dot_product(gradient, gradient)/tmp)*V
+                temp=dot_product(gradient, gradient)
+                call grad ()
+                V=(-1)*gradient+(dot_product(gradient, gradient)/temp)*V
         end if
 
-    end subroutine get_V
+    end subroutine calc_V
 
     real function lambda ()
         real :: m1, m2, m3
@@ -161,38 +182,9 @@ contains
 
     end function lambda
 
-    real function get_sigma ()
-        integer :: i
-        real :: q
+end program first_programm
 
-        tmp=tmp-polinom
-        get_sigma=1000
-
-        do i=1, k+1
-            if (polinom(i)/=0) then
-                q=abs(tmp(i)/polinom(i))
-                if (q<get_sigma) then
-                    get_sigma=q
-                end if
-            end if
-        end do
-
-    end function get_sigma
-
-end program prak1
-
-subroutine my_print (X, N)
-
-    integer :: N, i
-    real, dimension (N) :: X
-
-    do i=1, N
-        print *, X(i)
-    end do
-
-end subroutine my_print
-
-subroutine get_target_F_values (X, Y, N)
+subroutine searchFunction (X, Y, N)
 
     integer :: N, i
     real, dimension (N) :: X, Y
@@ -201,4 +193,26 @@ subroutine get_target_F_values (X, Y, N)
         Y(i)=cos(2*X(i))-((exp(X(i)/5)+exp(-X(i)/5))/2)
     end do
 
-end subroutine get_target_F_values
+end subroutine searchFunction
+
+subroutine testFunction1 (X, Y, N)
+
+    integer :: N, i
+    real, dimension (N) :: X, Y
+
+    do i=1, N
+        Y(i)=(X(i)-0.7)*(X(i)-1.2)
+    end do
+
+end subroutine testFunction1
+
+subroutine testFunction2 (X, Y, N)
+
+    integer :: N, i
+    real, dimension (N) :: X, Y
+
+    do i=1, N
+        Y(i)=(X(i)-0.6)*(X(i)-1.1)*(X(i)-1.4)
+    end do
+
+end subroutine testFunction2
